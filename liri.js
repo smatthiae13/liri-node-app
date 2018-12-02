@@ -11,85 +11,161 @@ var request = require("request");
 var bandsInTown = ("bandsintown")
 //for date format
 var moment = require("moment");
+
+
+
+
 var command = process.argv[2];
+function switchStatement() {
+    switch (command) {
+        case "movie-this":
+            getMovie();
+            break;
+        case "concert-this":
+            concertThis();
+            break;
+        case "spotify-this-song":
+            getSong();
+            break;
+        case "do-what-it-says":
+            doWhatItSays();
+            break;
+    }
+}
 var input = process.argv.slice(3).join(" ");
-//axios.get("")
 
-//when users enters in request: "node liri.js concert-this <artist/band name here>"
-function bands() {
-    
-    var queryUrl = "https://rest.bandsintown.com/artists/" + name + "/events?app_id=codingbootcamp";
+function getMovie() {
 
-    console.log(queryUrl);
+    //get user input
+    var movie = input;
+
+    //return error if user does not enter a movie
+    if (!movie) {
+        console.log("ERROR: You did not enter a movie. Try Mr.Nobody");
+        movie = "mr+nobody"
+    } else {
+        movie = movie.trim().replace(" ", "+");
+    }
+}
+//search OMBD API for movie
+var queryURL = "https://www.omdbapi.com/?t=" + movie + "&y=&plot=short&apikey=584a2704";
+request(queryUrl, function (error, response, body) {
+    if (!error && response.statusCode === 200) {
+        var data = JSON.parse(body);
+        var movieData = [
+            "Movie title: " + data.Title,
+            "Released: " + data.Year,
+            "IMDB Rating: " + data.Ratings[0].Value,
+            "Rotten Tomatoes Rating: " + data.Ratings[1].Value,
+            "Produced in: " + data.Country,
+            "Language(s): " + data.Language,
+            "Plot: " + data.Plot,
+            "Actors: " + data.Actors
+        ].join("\n\n");
+
+        fs.appendFile("random.txt", movieData + "\n---------------------------\n", function (err) {
+            if (err) throw err;
+            console.log("---------------------------\n" +
+                movieData +
+                "\n---------------------------");
+        });
+    }
+});
+
+//Bands in Town-------------------------------------------------------------
+
+
+function concertThis() {
+    var artist = input;
+
+    if (!artist) {
+        console.log("You did not provise an artist");
+    } else {
+        artist = artist.trim();
+    }
+    var queryUrl = "https://rest.bandsintown.com/artists/" + artist + "/events?app_id=codingbootcamp";
     request(queryUrl, function (error, response, body) {
         // If the request is successful
-        var pbody = JSON.parse(body);
         if (!error && response.statusCode === 200) {
-            pbody.forEach(function (element) {
-                console.log("Venue name - " + element.venue.name);
-                console.log("Venue Location - " +  element.venue.city + " , " +  element.venue.region + "  - " + element.venue.country);
-                console.log("Date - " + moment(element.datetime).format("MM/DD/YYYY"));
+            var data = JSON.parse(body);
+            var formatTime = moment(data[0].datetime.slice(0, 10), "YYYY-MM-DD").format("dddd MMMM Do, YYYY");
+            var artistData = [
+                "Venue Name: " + data[0].venue.name,
+                "Venue Location: " + data[0].venue.city + "," + data[0].venue.country,
+                "Date" + formatTime,
+            ].join("\n\n");
+
+            fs.appendFile("random.txt", artistData + "\n-------------" + function (err) {
+                if (err) throw err;
+                console.log("Next show for: " + artist + "\n\n" + artistData +
+                    "\n---------------------------");
             });
         }
     });
 }
+//Spotify this song--------------------------------------------------------------
 
 //when user enters in request: `node liri.js spotify-this-song '<song name here>'`. we pull the info from Spotify
-function spotifyThis() {
-    if (name = "") {
-        name = "The sign Ace of Base";
-    }
-    else (command === "spotify-this-song"); {
-        spotify.search({
-            type: "track",
-            query: input,
-        }),
-            function (err, data) {
-                if (err) {
-                    console.log("error occurred: " + err);
-                    return;
-                }
-                console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~");
-                console.log("artists name: ", + data.tracks.items[0].album.artists[0].name);
-                console.log("Song name: ", + data.tracks.items[0].name);
-                console.log("A preview link of the song from Spotify: ", + data.tracks.items[0].preview_url);
-                console.log("The album the song is from: " + data.tracks.items[0].album.name);
-                console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-            }
-    }
-}
-function movieThis() {
-    // This line is just to help us debug against the actual URL.
-    if (name === "") {
-        name = "Mr. Nobody";
+function getSong() {
+    var spotify = new Spotify({
+        id: keys.spotify.id,
+        secret: keys.spotify.secret
+    });
+
+    //grab user input
+    var song = input;
+
+    if (!song) {
+        console.log("ERROR: You did not enter a song. Try 'The Sign by The Ace of Base'");
+        song = "the sign ace of base";
+    } else {
+        song = song.trim();
     }
 
-    var queryUrl =
-        "http://www.omdbapi.com/?t=" + name + "&y=&plot=short&tomatoes=true&apikey=trilogy";
-
-    request(queryUrl, function (error, response, body) {
-        // If the request is successful
-        if (!error && response.statusCode === 200) {
-            // Parse the body of the site and recover just the imdbRating
-            var pbody = JSON.parse(body);
-            console.log("~~~~~~~~~~~~~~~~~~~~~~~");
-            console.log("Title - " + pbody.Title);
-            console.log("Release Year: - " + pbody.Year);
-            console.log("IMDB Rating - " + pbody.imdbRating);
-            console.log("Rotten Tomatoes Rating - " + pbody.tomatoRating);
-            console.log("Country where the movie was produced - " + pbody.Country);
-            console.log("Language - " + pbody.Language);
-            console.log("Plot - " + pbody.Plot);
-            console.log("Actors - " + pbody.Actors);
-            console.log("~~~~~~~~~~~~~~~~~~~~~~~~");
+    spotify.search({
+        type: track,
+        query: song
+    },
+    function(error, data) {
+        if (error) {
+            return console.log("ERROR: " + error);
         }
+        var name = data.tracks.items[0].name;
+        var artist = data.tracks.items[0].artist[0].name;
+        var album = data.tracks.items[0].album.name;
+        var preview = data.tracks.items[0].preview_url;
+        var songData = [
+            "Artists: " + artist,
+            "Name: " + name,
+            "Album: " + album,
+            "Preview link: " + preview
+        ].join("\n\n");
+
+        fs.appendFile("random.txt", songData + "\n--------------\n" + function(err) {
+            if (err) throw err;
+            console.log("----------------\n" + songData + "\n----------------");
+        });
     });
 }
-function doWhat() {
-    if (command === " do-what-it-says"){
-    fs.readFile("./random.txt", "utf-8", function(error, data){
-if (error) throw error;
- });
+
+//Do What is says-------------------------------------------------------
+            
+function doWhatItSays() {
+
+
+    fs.readFile("random.txt", "utf8", function (error, data) {
+        if (error) {
+            return console.log(chalk.red("ERROR: " + error));
+        }
+        else {
+            var array = data.split(',');
+            console.log(array);
+            command = array[0];
+            input = array[1];
+            switchStatement();
+
+        }
+    });
+
 }
-}
-fs.appendFile("random.txt", )
+
