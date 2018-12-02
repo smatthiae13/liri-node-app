@@ -12,7 +12,7 @@ var bandsInTown = ("bandsintown")
 //for date format
 var moment = require("moment");
 var command = process.argv[2];
-var input = process.argv[3];
+var input = process.argv.slice(3).join(" ");
 //axios.get("")
 
 //when users enters in request: "node liri.js concert-this <artist/band name here>"
@@ -61,4 +61,29 @@ console.log("The album the song is from: " + data.tracks.items[0].album.name);
 }
 }
 }
+function movieThis() {
+    // This line is just to help us debug against the actual URL.
+    if (name === "") {
+      name = "Mr. Nobody";
+    }
+  
+    var queryUrl =
+      "http://www.omdbapi.com/?t=" + name + "&y=&plot=short&tomatoes=true&apikey=trilogy";
+  
+    request(queryUrl, function(error, response, body) {
+      // If the request is successful
+      if (!error && response.statusCode === 200) {
+        // Parse the body of the site and recover just the imdbRating
+        var pbody = JSON.parse(body);
+        console.log("Title - " + pbody.Title);
+        console.log("Release Year: - " + pbody.Year);
+        console.log("IMDB Rating - " + pbody.imdbRating);
+        console.log("Rotten Tomatoes Rating - " + pbody.tomatoRating);
+        console.log("Country where the movie was produced - " + pbody.Country);
+        console.log("Language - " + pbody.Language);
+        console.log("Plot - " + pbody.Plot);
+        console.log("Actors - " + pbody.Actors);
+      }
+    });
+  }
 fs.appendFile("random.txt", )
