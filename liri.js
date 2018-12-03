@@ -155,7 +155,7 @@ function doWhatItSays() {
 
     fs.readFile("random.txt", "utf8", function (error, data) {
         if (error) {
-            return console.log(("ERROR: " + error);
+            return console.log("ERROR: " + error);
         }
         else {
             var array = data.split(',');
